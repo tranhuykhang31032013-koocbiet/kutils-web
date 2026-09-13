@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Utils | Official Brand</title>
+    <style>
+        :root {
+            --primary: #00f0ff;
+            --bg: #09090b;
+            --text: #a1a1aa;
+            --border: #27272a;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Fira Code', 'Consolas', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, transparent 70%);
+        }
+        .container {
+            width: 100%;
+            max-width: 550px;
+            padding: 40px;
+            background: rgba(9, 9, 11, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 240, 255, 0.05);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+        h1 {
+            color: #ffffff;
+            margin-top: 0;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        h1 span {
+            color: var(--primary);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        }
+        .subtitle {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        .terminal-box {
+            margin: 25px 0;
+            padding: 15px;
+            background: #121214;
+            border-left: 3px solid var(--primary);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .blink {
+            animation: blinker 1s linear infinite;
+            color: #ff5f56; /* Đổi sang màu đỏ cảnh báo */
+            font-weight: bold;
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: #27272a;
+            border-radius: 2px;
+            margin-top: 30px;
+            overflow: hidden;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            animation: load 2.5s ease-in-out infinite alternate;
+        }
+        @keyframes load {
+            0% { width: 10%; }
+            100% { width: 90%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>K<span>-</span>Utils</h1>
+        <div class="subtitle">The Official Developer Brand by Khang.</div>
+        <p>Advanced developer utilities, secure text tools, and system scripts.</p>
+        
+        <div class="terminal-box">
+            > Initializing brand repository... [OK]<br>
+            > Loading core architecture... [IN PROGRESS]<br>
+            > Deploying flagship tools... <span class="blink">NOT YET COMPLETED</span>
+        </div>
+
+        <p style="font-size: 0.8rem; color: #52525b; margin-bottom: 0;">
+            Warning: Brand infrastructure is currently under construction. Please check back later.
+        </p>
+        
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    </div>
+</body>
+</html>
