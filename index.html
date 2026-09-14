@@ -1,149 +1,602 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CaoCap Tech | Termux Mini</title>
+    <title>K-Utils | Tối Ưu Hóa Quy Trình Phát Triển & Công Cụ Tiện Ích</title>
+    <meta name="description" content="Công cụ phân tích JSON và chuyển đổi Base64 mã nguồn mở, tích hợp thuật toán định vị dòng lỗi và giao diện tiếp cận chuẩn WCAG.">
     <style>
-        body { background: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .terminal { background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 85%; max-width: 800px; height: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; }
-        .header { display: flex; border-bottom: 1px solid #30363d; padding: 12px; background: #161b22; }
-        .btn { width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; }
-        .close { background: #ff5f56; } .min { background: #ffbd2e; } .max { background: #27c93f; }
-        .terminal-body { padding: 15px; overflow-y: auto; flex-grow: 1; font-size: 15px; line-height: 1.5; }
-        .terminal-body::-webkit-scrollbar { width: 8px; }
-        .terminal-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        .text-green { color: #7ee787; font-weight: bold; } .text-blue { color: #79c0ff; font-weight: bold; } .text-gray { color: #8b949e; } .text-red { color: #ff7b72; } .text-yellow { color: #d2a8ff; }
-        .input-line { display: flex; align-items: center; margin-top: 5px; }
-        .prompt { white-space: nowrap; margin-right: 8px; }
-        input[type="text"] { background: transparent; border: none; color: #c9d1d9; font-family: inherit; font-size: inherit; flex-grow: 1; outline: none; padding: 0; caret-color: #c9d1d9; }
-        .output { margin-bottom: 5px; white-space: pre-wrap; word-break: break-all; }
+        /* 
+         * =========================================
+         * 1. HỆ THỐNG DESIGN TOKENS (Kiến trúc phân lớp)
+         * =========================================
+         * Cấu trúc tách biệt logic màu sắc khỏi các thành phần UI,
+         * cho phép triển khai chế độ sáng/tối dễ dàng mà không cần viết lại CSS.
+         */
+        :root {
+            /* Lớp 1: Primitives - Các giá trị màu sắc nguyên thủy */
+            --gray-0: #f0f6fc;
+            --gray-100: #c9d1d9;
+            --gray-300: #8b949e;
+            --gray-700: #30363d;
+            --gray-800: #161b22;
+            --gray-900: #0d1117;
+            --gray-950: #010409;
+            
+            --blue-400: #58a6ff;
+            --blue-500: #1f6feb;
+            --green-400: #2ea043;
+            --green-500: #238636;
+            --red-400: #f85149;
+            --red-500: #da3633;
+
+            /* Lớp 2: Semantic / Functional Tokens - Gắn liền với chức năng */
+            --bg-canvas: var(--gray-900);
+            --bg-surface: var(--gray-800);
+            --bg-input: var(--gray-950);
+            
+            --border-default: var(--gray-700);
+            --border-active: var(--blue-400);
+            
+            --text-primary: var(--gray-100);
+            --text-muted: var(--gray-300);
+            
+            --accent-default: var(--blue-400);
+            --accent-hover: var(--blue-500);
+            
+            --success-default: var(--green-500);
+            --success-hover: var(--green-400);
+            
+            --danger-default: var(--red-400);
+            
+            /* Lớp 3: Tokens Hình Học và Động Lực Học */
+            --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        /* Khởi tạo lại CSS cơ bản để tối ưu quy trình kết xuất trình duyệt */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* 
+         * Thiết lập nền tảng thân trang
+         * Tôn trọng tỷ lệ khoảng cách nội suy bằng hàm clamp()
+         */
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: var(--font-stack);
+            margin: 0;
+            padding: clamp(1rem, 3vw, 2.5rem);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            accent-color: var(--accent-default);
+        }
+
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            /* Thiết lập gốc tọa độ Truy vấn Vùng Chứa (Container Queries) */
+            container-type: inline-size;
+            container-name: main-layout;
+        }
+
+        /* 
+         * =========================================
+         * 2. HEADER & FLUID TYPOGRAPHY
+         * =========================================
+         */
+        header {
+            text-align: center;
+            margin-bottom: clamp(2rem, 5vw, 3rem);
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        /* Công thức tuyến tính clamp đảm bảo Typography mượt mà và hỗ trợ Zoom Accessibility */
+        h1 {
+            color: var(--text-primary);
+            font-size: clamp(2rem, 1.5rem + 2.5vw, 3rem);
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.025em;
+        }
+
+        h1 span {
+            color: var(--accent-default);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+            margin: 0;
+        }
+
+        /* 
+         * =========================================
+         * 3. INTRINSIC GRID LAYOUT 
+         * =========================================
+         */
+        .grid {
+            display: grid;
+            /* Auto-fit thay thế hoàn toàn Media Queries cho bố cục Responsive */
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* 
+         * =========================================
+         * 4. THIẾT KẾ CÁC THÀNH PHẦN (Card, Input, Button)
+         * =========================================
+         */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            /* Tạo chiều sâu bằng bóng đổ đa lớp tinh tế theo phong cách Vercel UI */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: border-color var(--transition-fast);
+        }
+
+        .card:hover {
+            border-color: #4b5563;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-default);
+            padding-bottom: 0.75rem;
+        }
+
+        .card h2 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            resize: vertical;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+        
+        textarea::placeholder {
+            color: #484f58;
+        }
+
+        /* Thiết kế hệ thống tương tác Nút bấm */
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--gray-700);
+            border-color: var(--gray-300);
+        }
+
+        /* Quản lý tiêu điểm (Focus Management) cho khả năng tiếp cận bàn phím */
+        button:focus-visible {
+            outline: 2px solid var(--border-active);
+            outline-offset: 2px;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--success-default);
+            color: #ffffff;
+            border-color: var(--success-default);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--success-hover);
+            border-color: var(--success-hover);
+        }
+        
+        .btn-accent {
+            background: var(--accent-default);
+            color: #ffffff;
+            border-color: var(--accent-default);
+        }
+
+        .btn-accent:hover:not(:disabled) {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        /* 
+         * =========================================
+         * 5. VÙNG THÔNG BÁO ARIA (Trạng thái và lỗi)
+         * =========================================
+         */
+        .status-msg {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            min-height: 1.5rem;
+            margin-top: 0.5rem;
+            word-break: break-word;
+        }
+        
+        .status-msg svg {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+        }
+
+        /* Điều khiển luồng thị giác qua Token thay vì gán màu cứng */
+        .text-success { color: var(--success-default); }
+        .text-danger { color: var(--danger-default); }
+        .text-muted { color: var(--text-muted); }
+
+        .icon-btn {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+        }
+        .icon-btn:hover {
+            color: var(--text-primary);
+            background: var(--gray-700);
+        }
+
+        /* 
+         * =========================================
+         * 6. DANH SÁCH DỰ ÁN 
+         * =========================================
+         */
+        .projects-section {
+            margin-top: 2rem;
+        }
+        
+        .projects-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            /* Container Query Level Layout cho danh sách card con */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .project-item {
+            padding: 1.25rem;
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            background: var(--bg-input);
+            transition: transform var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .project-item:hover {
+            border-color: var(--border-active);
+            transform: translateY(-2px);
+        }
+
+        .project-item a {
+            color: var(--accent-default);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .project-item a:hover {
+            text-decoration: underline;
+        }
+
+        .project-item p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
-    <div class="terminal" onclick="document.getElementById('cmd-input').focus()">
-        <div class="header"><div class="btn close"></div><div class="btn min"></div><div class="btn max"></div></div>
-        <div class="terminal-body" id="term-body">
-            <div id="history">
-                <div class="output">Welcome to CaoCap Termux Simulator!<br>Type <span class="text-yellow">help</span> to see available commands.</div>
-            </div>
-            <div class="input-line">
-                <span class="prompt" id="prompt-text"></span>
-                <input type="text" id="cmd-input" autocomplete="off" spellcheck="false" autofocus>
-            </div>
-        </div>
+    <div class="container">
+        <header>
+            <h1><span>K</span>-Utils</h1>
+            <p class="subtitle">Khung Kiến Trúc Phân Tích Dữ Liệu & Tự Động Hóa Dành Cho Lập Trình Viên</p>
+        </header>
+
+        <main class="grid">
+            <!-- Khu vực Công Cụ 1: Trình Định Dạng & Xác Thực JSON -->
+            <section class="card" aria-labelledby="heading-json">
+                <div class="card-header">
+                    <h2 id="heading-json">JSON Formatter</h2>
+                    <!-- Nút sao chép đảm bảo Accessibility với thuộc tính aria-label -->
+                    <button class="icon-btn" onclick="copyToClipboard('json-input', 'json-copy-icon')" aria-label="Sao chép kết quả JSON vào bộ nhớ tạm" title="Sao chép">
+                        <svg id="json-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="input-group">
+                    <textarea id="json-input" placeholder='{"status": "Dán chuỗi JSON thô tại đây", "array": [1, 2, 3]}' spellcheck="false" aria-label="Khu vực nhập chuỗi dữ liệu JSON"></textarea>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn-primary" onclick="formatJSON()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        Định Dạng / Xác Thực
+                    </button>
+                    <button onclick="clearField('json-input', 'json-msg')">Xóa Dữ Liệu</button>
+                </div>
+
+                <!-- 
+                     Vùng ARIA Live: Đã tồn tại sẵn trong DOM.
+                     Chỉ thực hiện thay đổi giá trị của role (status/alert) và aria-live bằng JS. 
+                -->
+                <div id="json-msg" class="status-msg text-muted" aria-live="polite" aria-atomic="true">
+                    Vui lòng dán chuỗi cấu trúc JSON hợp lệ để hệ thống phân tích.
+                </div>
+            </section>
+
+            <!-- Khu vực Công Cụ 2: Bộ Mã Hóa & Giải Mã Base64 -->
+            <section class="card" aria-labelledby="heading-b64">
+                <div class="card-header">
+                    <h2 id="heading-b64">Bộ Công Cụ Base64</h2>
+                    <button class="icon-btn" onclick="copyToClipboard('b64-input', 'b64-copy-icon')" aria-label="Sao chép kết quả Base64 vào bộ nhớ tạm" title="Sao chép">
+                        <svg id="b64-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="input-group">
+                    <textarea id="b64-input" placeholder="Nhập văn bản UTF-8 hoặc chuỗi mã hóa Base64..." spellcheck="false" aria-label="Khu vực nhập chuỗi thao tác Base64"></textarea>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn-accent" onclick="processBase64('encode')">Mã Hóa (Encode)</button>
+                    <button class="btn-accent" onclick="processBase64('decode')">Giải Mã (Decode)</button>
+                    <button onclick="clearField('b64-input', 'b64-msg')">Xóa Dữ Liệu</button>
+                </div>
+
+                <div id="b64-msg" class="status-msg text-muted" aria-live="polite" aria-atomic="true">
+                    Thuật toán TextEncoder hỗ trợ bộ đệm ký tự UTF-8 (multibyte characters) toàn diện.
+                </div>
+            </section>
+        </main>
+
+        <!-- Khu Vực Tài Nguyên Nghiên Cứu và Dự Án Nguồn Mở -->
+        <section class="card projects-section" aria-labelledby="heading-projects">
+            <header class="card-header" style="border: none; padding-bottom: 0;">
+                <div>
+                    <h2 id="heading-projects">Nghiên Cứu Cấu Hình Hệ Thống & Dự Án Nguồn Mở</h2>
+                    <p class="subtitle" style="margin-top: 0.5rem; font-size: 0.875rem;">Hệ thống lưu trữ các tập lệnh tùy chỉnh hạ tầng kỹ thuật, thiết lập môi trường giả lập, và các kịch bản tự động hóa (Automation Scripts).</p>
+                </div>
+            </header>
+            
+            <ul class="projects-list">
+                <li class="project-item">
+                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ Android Custom Kernel">
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                        Android Custom Kernel & Boot Configurations
+                    </a>
+                    <p>Tích hợp mô-đun APatch, thiết lập hệ thống defconfig tùy chỉnh, và kịch bản flash boot.img tự động cho môi trường kernel giả lập và thử nghiệm.</p>
+                </li>
+                <li class="project-item">
+                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ WSL2 & Termux Scripts">
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        WSL2 & Termux Environment Scripts
+                    </a>
+                    <p>Chuỗi kịch bản tự động hóa giúp triển khai các chuỗi công cụ biên dịch (toolchains như Clang, GCC) và giả lập Virtual File System (VFS) trong môi trường Terminal di động.</p>
+                </li>
+                <li class="project-item">
+                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ OpenWrt Network Traffic Balancing">
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        Local Network Traffic Balancing
+                    </a>
+                    <p>Cấu hình định tuyến kỹ thuật sâu qua mwan3 trên OpenWrt, tích hợp UCI shell scripts nhằm phân bổ và quản lý luồng dữ liệu (load balancing policies) cho kiến trúc mạng đa luồng (multi-WAN).</p>
+                </li>
+            </ul>
+        </section>
     </div>
 
     <script>
-        // Hệ thống file ảo (Virtual File System)
-        let vfs = {
-            "home": {
-                "caocap": {
-                    "kernel_dev": {
-                        "a05_defconfig.txt": "CONFIG_KSU=y\nCONFIG_APATCH=y\n# Build custom kernel for Samsung A05"
-                    },
-                    "roblox": {
-                        "bloxfruits_sea3.lua": 'print("Auto farm loaded...")\n_G.FastAttack = true'
-                    },
-                    "openwrt": {
-                        "wifi_ai.sh": "#!/bin/sh\n# mwan3 load balancing script"
-                    },
-                    "readme.txt": "Bro đang xài giả lập hệ thống file do tui code =))"
-                }
-            }
+        // ==========================================
+        // KHỐI TIỆN ÍCH SVG ICONS CHO THÔNG BÁO WCAG
+        // ==========================================
+        const icons = {
+            success: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            error: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+            info: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
         };
 
-        let cwd = ["home", "caocap"]; // Current Working Directory
-
-        const input = document.getElementById('cmd-input');
-        const history = document.getElementById('history');
-        const termBody = document.getElementById('term-body');
-        const promptEl = document.getElementById('prompt-text');
-
-        function updatePrompt() {
-            let path = cwd.join('/').replace('home/caocap', '~');
-            promptEl.innerHTML = `<span class="text-green">root@caocap</span>:<span class="text-blue">${path}</span>$`;
+        /**
+         * Chịu trách nhiệm hiển thị thông báo với tính năng tiêm (inject) ARIA roles tự động
+         * @param {string} elementId - ID của phần tử chứa (container)
+         * @param {string} message - Chuỗi thông báo
+         * @param {string} type - 'success', 'error', hoặc 'info'
+         */
+        function setStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            
+            // WCAG 4.1.3 & 3.3.1: Lỗi phải mang tính chất Alert làm gián đoạn Screen Reader
+            el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+            el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            
+            const colorClass = type === 'error' ? 'text-danger' : (type === 'success' ? 'text-success' : 'text-muted');
+            el.className = `status-msg ${colorClass}`;
+            
+            // Render icon hình học thay vì chỉ dùng màu sắc
+            el.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
         }
-        updatePrompt();
 
-        function getDir(pathArray) {
-            let curr = vfs;
-            for (let p of pathArray) {
-                if (curr[p] && typeof curr[p] === 'object') curr = curr[p];
-                else return null;
+        // ==========================================
+        // ALGORITHM: JSON FORMATTER & ERROR TRACKING
+        // ==========================================
+        function formatJSON() {
+            const inputEl = document.getElementById('json-input');
+            const rawVal = inputEl.value.trim();
+            
+            if (!rawVal) {
+                setStatus('json-msg', 'Hệ thống yêu cầu dữ liệu JSON đầu vào để tiến hành phân tích.', 'info');
+                return;
             }
-            return curr;
+
+            try {
+                const parsed = JSON.parse(rawVal);
+                // Triển khai định dạng chuẩn thụt lề 4 khoảng trắng
+                inputEl.value = JSON.stringify(parsed, null, 4);
+                setStatus('json-msg', 'Cú pháp JSON hoàn toàn hợp lệ và đã được cấu trúc hóa.', 'success');
+            } catch (e) {
+                // Thuật toán đảo ngược lỗi SyntaxError của V8/SpiderMonkey
+                let errorDetails = 'Cú pháp không hợp lệ do cấu trúc bị phá vỡ.';
+                const msg = e.message;
+                
+                // Trích xuất index tĩnh qua Biểu thức chính quy (Regex)
+                const match = msg.match(/position\s+(\d+)/);
+                if (match && match[1]) {
+                    const position = parseInt(match[1], 10);
+                    // Cắt chuỗi con để định vị
+                    const textBeforeError = rawVal.substring(0, position);
+                    
+                    // Tính toán hệ tọa độ Dòng/Cột (Line/Column)
+                    const lines = textBeforeError.split('\n');
+                    const lineNum = lines.length;
+                    const colNum = lines[lines.length - 1].length + 1;
+                    
+                    errorDetails = `Phát hiện lỗi tại Dòng ${lineNum}, Cột ${colNum}. Nguyên nhân: Trình phân tích cú pháp gặp ký tự không mong đợi.`;
+                } else {
+                    errorDetails = msg;
+                }
+                
+                setStatus('json-msg', errorDetails, 'error');
+            }
         }
 
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                const rawCmd = this.value.trim();
-                if (!rawCmd) return;
-                
-                const args = rawCmd.split(' ').filter(x => x);
-                const cmd = args[0].toLowerCase();
-                
-                history.innerHTML += `<div>${promptEl.innerHTML} ${rawCmd}</div>`;
-                
-                let currentFolder = getDir(cwd);
-                let out = "";
-
-                try {
-                    if (cmd === 'clear') { history.innerHTML = ''; out = null; }
-                    else if (cmd === 'help') {
-                        out = `Commands: <span class="text-yellow">ls, cd, pwd, cat, touch, mkdir, rm, clear, neofetch</span>`;
-                    }
-                    else if (cmd === 'pwd') {
-                        out = '/' + cwd.join('/');
-                    }
-                    else if (cmd === 'ls') {
-                        let targetFolder = currentFolder;
-                        if (args[1]) {
-                            if (args[1] === '..') targetFolder = getDir(cwd.slice(0, -1)) || currentFolder;
-                            else if (currentFolder[args[1]] && typeof currentFolder[args[1]] === 'object') targetFolder = currentFolder[args[1]];
-                        }
-                        out = Object.keys(targetFolder).map(k => typeof targetFolder[k] === 'object' ? `<span class="text-blue">${k}/</span>` : k).join('  ');
-                    }
-                    else if (cmd === 'cd') {
-                        let dir = args[1];
-                        if (!dir || dir === '~') cwd = ["home", "caocap"];
-                        else if (dir === '..') { if (cwd.length > 1) cwd.pop(); }
-                        else if (currentFolder[dir] && typeof currentFolder[dir] === 'object') cwd.push(dir);
-                        else out = `<span class="text-red">cd: ${dir}: No such directory</span>`;
-                        updatePrompt();
-                    }
-                    else if (cmd === 'cat') {
-                        let file = args[1];
-                        if (!file) out = "cat: missing operand";
-                        else if (currentFolder[file] && typeof currentFolder[file] === 'string') out = currentFolder[file];
-                        else out = `<span class="text-red">cat: ${file}: No such file</span>`;
-                    }
-                    else if (cmd === 'touch') {
-                        if (args[1]) currentFolder[args[1]] = "";
-                        else out = "touch: missing file operand";
-                    }
-                    else if (cmd === 'mkdir') {
-                        if (args[1]) currentFolder[args[1]] = {};
-                        else out = "mkdir: missing operand";
-                    }
-                    else if (cmd === 'rm') {
-                        if (args[1] && currentFolder[args[1]]) delete currentFolder[args[1]];
-                        else out = `rm: cannot remove '${args[1]}': No such file or directory`;
-                    }
-                    else if (cmd === 'neofetch') {
-                        out = `<span class="text-green">   /\\   </span> <span class="text-green">root</span>@<span class="text-green">caocap</span>\n<span class="text-green">  /  \\  </span> OS: CaoCap Web OS\n<span class="text-green"> /____\\ </span> Kernel: JS VFS 1.0\n<span class="text-green">/      \\</span> Shell: js-bash`;
-                    }
-                    else {
-                        out = `<span class="text-red">bash: ${cmd}: command not found</span>`;
-                    }
-                } catch (err) { out = `<span class="text-red">Error executing command</span>`; }
-
-                if (out !== null && out !== "") history.innerHTML += `<div class="output">${out}</div>`;
-                
-                this.value = '';
-                termBody.scrollTop = termBody.scrollHeight;
+        // ==========================================
+        // ALGORITHM: UTF-8 BASE64 ENCODER / DECODER
+        // ==========================================
+        function processBase64(action) {
+            const inputEl = document.getElementById('b64-input');
+            const rawVal = inputEl.value.trim();
+            
+            if (!rawVal) {
+                setStatus('b64-msg', 'Hệ thống chờ nhận chuỗi dữ liệu cần biến đổi.', 'info');
+                return;
             }
-        });
+
+            try {
+                if (action === 'encode') {
+                    // Chuyển đổi an toàn UTF-8 -> Base64 thông qua TextEncoder
+                    const bytes = new TextEncoder().encode(rawVal);
+                    const binString = Array.from(bytes, (byte) =>
+                        String.fromCodePoint(byte),
+                    ).join("");
+                    inputEl.value = btoa(binString);
+                    setStatus('b64-msg', 'Quá trình mã hóa Base64 kết thúc thành công. Dữ liệu đã an toàn.', 'success');
+                } else {
+                    // Chuyển đổi an toàn Base64 -> UTF-8 thông qua TypedArray và TextDecoder
+                    const binString = atob(rawVal);
+                    const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0));
+                    inputEl.value = new TextDecoder().decode(bytes);
+                    setStatus('b64-msg', 'Quá trình giải mã Base64 hoàn tất. Trích xuất thành chuỗi văn bản.', 'success');
+                }
+            } catch (e) {
+                setStatus('b64-msg', 'Lỗi nghiêm trọng: Chuỗi đầu vào bị hỏng hoặc không thuộc định dạng Base64 tiêu chuẩn.', 'error');
+            }
+        }
+
+        // ==========================================
+        // TIỆN ÍCH TƯƠNG TÁC GIAO DIỆN (CLEAR & COPY)
+        // ==========================================
+        function clearField(inputId, msgId) {
+            const inputEl = document.getElementById(inputId);
+            inputEl.value = '';
+            inputEl.focus(); // Khôi phục tiêu điểm cho trải nghiệm bàn phím mượt mà
+            setStatus(msgId, 'Bộ nhớ đệm giao diện đã được dọn dẹp.', 'info');
+        }
+
+        async function copyToClipboard(inputId, iconId) {
+            const inputEl = document.getElementById(inputId);
+            if (!inputEl.value) return;
+
+            try {
+                await navigator.clipboard.writeText(inputEl.value);
+                
+                // Triển khai Optimistic UI: Phản hồi thị giác tức thời (Micro-interactions)
+                const iconEl = document.getElementById(iconId);
+                const originalHTML = iconEl.innerHTML;
+                
+                // Thay thế vector bằng biểu tượng dấu tích xác nhận
+                iconEl.innerHTML = `<polyline points="20 6 9 17 4 12"></polyline>`;
+                iconEl.style.color = 'var(--success-default)';
+                
+                // Đồng bộ hóa chu kỳ nhịp nhàng, khôi phục sau 2000ms
+                setTimeout(() => {
+                    iconEl.innerHTML = originalHTML;
+                    iconEl.style.color = '';
+                }, 2000);
+            } catch (err) {
+                alert('Khung bảo mật trình duyệt từ chối quyền truy cập bộ nhớ tạm. Hãy thử cấp quyền Clipboard API.');
+            }
+        }
     </script>
 </body>
 </html>
+
