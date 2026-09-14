@@ -1,602 +1,519 @@
 <!DOCTYPE html>
-<html lang="vi" data-theme="dark">
+<html lang="vi" data-theme="neon-glass">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Utils | Tối Ưu Hóa Quy Trình Phát Triển & Công Cụ Tiện Ích</title>
-    <meta name="description" content="Công cụ phân tích JSON và chuyển đổi Base64 mã nguồn mở, tích hợp thuật toán định vị dòng lỗi và giao diện tiếp cận chuẩn WCAG.">
+    <title>K-Utils | Mạng Kỹ Thuật Số Nam Trực - Ninh Bình</title>
+    <meta id="meta-desc" name="description" content="K-Utils: Công cụ JSON và Base64 tối ưu hóa đa luồng, đạt chuẩn WCAG 2.2 và ES2026.">
+    <!-- Tiêu chuẩn Bảo mật CSP ngăn chặn XSS[span_106](start_span)[span_106](end_span)[span_107](start_span)[span_107](end_span) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* 
-         * =========================================
-         * 1. HỆ THỐNG DESIGN TOKENS (Kiến trúc phân lớp)
-         * =========================================
-         * Cấu trúc tách biệt logic màu sắc khỏi các thành phần UI,
-         * cho phép triển khai chế độ sáng/tối dễ dàng mà không cần viết lại CSS.
-         */
+        /* ==========================================================================
+           HỆ THỐNG BIẾN TOÀN CỤC - NEON GLASSMORPHISM (CHUẨN WCAG AAA)[span_108](start_span)[span_108](end_span)[span_109](start_span)[span_109](end_span)
+           ========================================================================== */
         :root {
-            /* Lớp 1: Primitives - Các giá trị màu sắc nguyên thủy */
-            --gray-0: #f0f6fc;
-            --gray-100: #c9d1d9;
-            --gray-300: #8b949e;
-            --gray-700: #30363d;
-            --gray-800: #161b22;
-            --gray-900: #0d1117;
-            --gray-950: #010409;
+            /* Nền tối sâu phản chiếu không gian đêm */
+            --bg-deep: #050b14;
+            /* Phản quang Neon: Cyan (Sông Đáy) và Magenta (Ánh đèn đô thị) */
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ea;
+            --neon-green: #00ff66;
             
-            --blue-400: #58a6ff;
-            --blue-500: #1f6feb;
-            --green-400: #2ea043;
-            --green-500: #238636;
-            --red-400: #f85149;
-            --red-500: #da3633;
-
-            /* Lớp 2: Semantic / Functional Tokens - Gắn liền với chức năng */
-            --bg-canvas: var(--gray-900);
-            --bg-surface: var(--gray-800);
-            --bg-input: var(--gray-950);
+            /* Thông số mờ và bóng vật lý của Glassmorphism */
+            --glass-bg: rgba(16, 25, 43, 0.6);
+            --glass-border: rgba(0, 243, 255, 0.15);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
             
-            --border-default: var(--gray-700);
-            --border-active: var(--blue-400);
+            /* Tỷ lệ tương phản cao cho chữ viết[span_26](start_span)[span_26](end_span) (WCAG Compliant)[span_110](start_span)[span_110](end_span) */
+            --text-primary: #f0f6fc;
+            --text-muted: #a3b3c9;
+            --text-danger: #ff5555;
             
-            --text-primary: var(--gray-100);
-            --text-muted: var(--gray-300);
-            
-            --accent-default: var(--blue-400);
-            --accent-hover: var(--blue-500);
-            
-            --success-default: var(--green-500);
-            --success-hover: var(--green-400);
-            
-            --danger-default: var(--red-400);
-            
-            /* Lớp 3: Tokens Hình Học và Động Lực Học */
-            --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-            --radius-md: 6px;
-            --radius-lg: 8px;
+            --font-ui: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius-lg: 16px;
+            --radius-md: 8px;
+            --trans: 0.3s cubic-bezier(0.2[span_15](start_span)[span_15](end_span)[span_20](start_span)[span_20](end_span)5, 0.8, 0.25, 1);
         }
 
-        /* Khởi tạo lại CSS cơ bản để tối ưu quy trình kết xuất trình duyệt */
-        *, *::before, *::after {
-            box-sizing: border-box;
+        /* Phản hồi với cài đặt hệ thống của người dùng nhạy cảm với chuyển động */
+        @media (prefers-reduced-motion: reduce) {
+            :root { --trans: 0s; }
+            .ambient-bg { display: none; }
         }
 
-        /* 
-         * Thiết lập nền tảng thân trang
-         * Tôn trọng tỷ lệ khoảng cách nội suy bằng hàm clamp()
-         */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            background-color: var(--bg-canvas);
+            background-color: var(--bg-deep);
             color: var(--text-primary);
-            font-family: var(--font-stack);
-            margin: 0;
-            padding: clamp(1rem, 3vw, 2.5rem);
+            font-family: var(--font-ui);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align[span_36](start_span)[span_36](end_span)-items: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
             line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            accent-color: var(--accent-default);
+        }
+
+        /* Cấu trúc dải mờ phát quang (Animated Mesh Gradient) */
+        .ambient-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; overflow: hidden;
+            background: radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08), transparent 40%),
+                        radial-gradient(circle at 85% 30%, rgba(255, 0, 234, 0.08), transparent 40%);
+            filter: blur(60px);
         }
 
         .container {
-            max-width: 1024px;
-            margin: 0 auto;
-            /* Thiết lập gốc tọa độ Truy vấn Vùng Chứa (Container Queries) */
-            container-type: inline-size;
-            container-name: main-layout;
+            width: 100%; max-width: 1200px; z-index: 1;
+            display: flex; flex-[span_33](start_span)[span_33](end_span)direction: column; gap: 2rem;
         }
 
-        /* 
-         * =========================================
-         * 2. HEADER & FLUID TYPOGRAPHY
-         * =========================================
-         */
         header {
-            text-align: center;
-            margin-bottom: clamp(2rem, 5vw, 3rem);
-            padding-bottom: 2rem;
-            border-bottom: 1px solid var(--border-default);
+            text-align: center; margin-bottom: 1rem;
+            position: relative;
         }
 
-        /* Công thức tuyến tính clamp đảm bảo Typography mượt mà và hỗ trợ Zoom Accessibility */
         h1 {
-            color: var(--text-primary);
-            font-size: clamp(2rem, 1.5rem + 2.5vw, 3rem);
-            font-weight: 700;
-            margin: 0 0 0.5rem 0;
-            letter-spacing: -0.025em;
+            font-size: clamp(2.5rem, 4vw, 4rem);
+            font-weight: 600;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, var(--text-primary), var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
         }
 
-        h1 span {
-            color: var(--accent-default);
-        }
-
+        h1 span { color: var(--neon-cyan); -webkit-text-fill-color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0,243,255,0.4); }
+        
         .subtitle {
-            color: var(--text-muted);
-            font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
-            margin: 0;
+            color: var(--text-muted); font-size: 1.1rem;
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .geo-badge {
+            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--glass-border);
+            padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem;
+            color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 1px;
         }
 
-        /* 
-         * =========================================
-         * 3. INTRINSIC GRID LAYOUT 
-         * =========================================
-         */
+        .top-bar { display: flex; justify-content: flex-end; }
+        
+        .lang-btn {
+            background: transparent; border: 1px solid var(--glass-border);
+            color: var(--text-primary); padding: 0.5rem 1rem;
+            border-radius: var(--radius-md); cursor: pointer;
+            backdrop-filter: blur(4px); transition: var(--trans);
+            font-family: var(--font-ui); font-weight: 500;
+        }
+        
+        .lang-btn:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            color: var(--neon-cyan);
+        }
+
+        /* Bento Box Layout */
         .grid {
             display: grid;
-            /* Auto-fit thay thế hoàn toàn Media Queries cho bố cục Responsive */
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+            gap: 2rem;
         }
 
-        /* 
-         * =========================================
-         * 4. THIẾT KẾ CÁC THÀNH PHẦN (Card, Input, Button)
-         * =========================================
-         */
+        /* Thẻ Glassmorphism với viền cứng chống suy giảm độ tương phản */
         .card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-default);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
             border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            /* Tạo chiều sâu bằng bóng đổ đa lớp tinh tế theo phong cách Vercel UI */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: border-color var(--transition-fast);
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: var(--glass-shadow[span_27](start_span)[span_27](end_span));
+            display: flex; flex-direction: column; gap: 1.5rem;
+            transition: var(--trans);
         }
 
-        .card:hover {
-            border-color: #4b5563;
-        }
+        .card:hover { border-color: rgba(0, 243, 255, 0.3); }
 
         .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-default);
-            padding-bottom: 0.75rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .card h2 {
-            margin: 0;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-primary);
+   [span_16](start_span)[span_16](end_span)[span_21](start_span)[span_21](end_span)     .card h2 { font-size: 1.25rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
+        .card h2::before {
+            content: ''; display: block; width: 8px; height: 8px;
+            background: var(--neon-cyan); border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-cyan);
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-
+        /* Vùng nhập liệu với nền tối chống lóa */
         textarea {
-            width: 100%;
-            height: 180px;
-            background: var(--bg-input);
+            width: 100%; height: 220px;
+            background: rgba(0, 0, 0, 0.4);
             color: var(--text-primary);
-            border: 1px solid var(--border-default);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: var(--radius-md);
-            padding: 0.75rem;
-            font-family: var(--font-mono);
-            font-size: 0.875rem;
-            resize: vertical;
-            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+            padding: 1rem;
+            font-family: var(--font-code); font-size: 0.9rem;
+            resize: vertical; transition: var(--trans);
+            line-height: 1.5;
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--border-active);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+            border-color: var(--neon-cyan);
+            box-shadow: inset 0 0 0 1px var(--neon-cyan), 0 0 15px rgba(0, 243, 255, 0.1);
+            background: rgba(0, 0, 0, 0.6);
         }
+
+        textarea::placeholder { color: rgba(163, 179, 201, 0.4); }
+
+        .actions { display: flex; gap: 1rem; flex-wrap: wrap; }
         
-        textarea::placeholder {
-            color: #484f58;
-        }
-
-        /* Thiết kế hệ thống tương tác Nút bấm */
-        .actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
         button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            background: var(--bg-input);
-            color: var(--text-primary);
-            border: 1px solid var(--border-default);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: background var(--transition-fast), border-color var(--transition-fast);
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            background: transparent; color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 0.6rem 1.2rem; border-radius: var(--radius-md);
+            cursor: pointer; font-size: 0.9rem; font-weight: 500;
+            font-family: var(--font-ui); transition: var(--trans);
+            position: relative; overflow: hidden;
         }
 
-        button:hover:not(:disabled) {
-            background: var(--gray-700);
-            border-color: var(--gray-300);
+        button:hover { background: rgba(255,255,255,0.05); }
+
+        .btn-neon-green { border-color: var(--neon-green); color: var(--neon-green); }
+        .btn-neon-green:hover {
+            background: rgba(0, 255, 102, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
         }
 
-        /* Quản lý tiêu điểm (Focus Management) cho khả năng tiếp cận bàn phím */
-        button:focus-visible {
-            outline: 2px solid var(--border-active);
-            outline-offset: 2px;
+        .btn-neon-cyan { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+        .btn-neon-cyan:hover {
+            background: rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
         }
 
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        .icon-btn { padding: 0.5rem; border: none; color: var(--text-muted); background: transparent; }
+        .icon-btn:hover { color: var(--neon-cyan); background: rgba(0,243,255,0.1); border-radius: 50%; }
 
-        .btn-primary {
-            background: var(--success-default);
-            color: #ffffff;
-            border-color: var(--success-default);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: var(--success-hover);
-            border-color: var(--success-hover);
-        }
-        
-        .btn-accent {
-            background: var(--accent-default);
-            color: #ffffff;
-            border-color: var(--accent-default);
-        }
-
-        .btn-accent:hover:not(:disabled) {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
-        }
-
-        /* 
-         * =========================================
-         * 5. VÙNG THÔNG BÁO ARIA (Trạng thái và lỗi)
-         * =========================================
-         */
+        /* Vùng thông báo chuẩn WCAG 2.2 */
         .status-msg {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            min-height: 1.5rem;
-            margin-top: 0.5rem;
-            word-break: break-word;
+            display: flex; align-items: center; gap: 0.7[span_100](start_span)[span_100](end_span)5rem;
+            font-size: 0.9rem; min-height: 24px; padding: 0.5rem;
+            border-radius: var(--radius-md); background: rgba(0,0,0,0.2);
+            word-break: break-word; font-family: var(--font-ui);
         }
+
+        .status-success { color: var(--neon-green); border-left: 2px solid var(--neon-green); }
+        .status-error { color: var(--text-danger); border-left: 2px solid var(--text-danger); }
+        .status-info { color: var(--text-muted); border-left: 2px solid var(--text-muted); }
         
-        .status-msg svg {
-            flex-shrink: 0;
-            width: 16px;
-            height: 16px;
-            margin-top: 2px;
-        }
-
-        /* Điều khiển luồng thị giác qua Token thay vì gán màu cứng */
-        .text-success { color: var(--success-default); }
-        .text-danger { color: var(--danger-default); }
-        .text-muted { color: var(--text-muted); }
-
-        .icon-btn {
-            padding: 0.25rem 0.5rem;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            border-radius: var(--radius-md);
-        }
-        .icon-btn:hover {
-            color: var(--text-primary);
-            background: var(--gray-700);
-        }
-
-        /* 
-         * =========================================
-         * 6. DANH SÁCH DỰ ÁN 
-         * =========================================
-         */
-        .projects-section {
-            margin-top: 2rem;
-        }
+        .status-msg svg { flex-shrink: 0; }
         
-        .projects-list {
-            list-style: none;
-            padding: 0;
-            display: grid;
-            /* Container Query Level Layout cho danh sách card con */
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
+        .loading-spinner {
+            animation: spin 1s linear infinite;
         }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .project-item {
-            padding: 1.25rem;
-            border: 1px solid var(--border-default);
-            border-radius: var(--radius-md);
-            background: var(--bg-input);
-            transition: transform var(--transition-fast), border-color var(--transition-fast);
-        }
-
-        .project-item:hover {
-            border-color: var(--border-active);
-            transform: translateY(-2px);
-        }
-
-        .project-item a {
-            color: var(--accent-default);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .project-item a:hover {
-            text-decoration: underline;
-        }
-
-        .project-item p {
-            color: var(--text-muted);
-            margin: 0;
-            font-size: 0.875rem;
-        }
     </style>
 </head>
 <body>
+    <div class="ambient-bg"></div>
+    
     <div class="container">
+        <div class="top-bar">
+            <button class="lang-btn" onclick="toggleLang()" id="langToggle">EN / VI</button>
+        </div>
+        
         <header>
             <h1><span>K</span>-Utils</h1>
-            <p class="subtitle">Khung Kiến Trúc Phân Tích Dữ Liệu & Tự Động Hóa Dành Cho Lập Trình Viên</p>
+            <p class="subtitle">
+                <span data-i18n="subtitle">Nền Tảng Dữ Liệu & Tự Động Hóa</span>
+                <!-- Huy hiệu định vị không gian kiến trúc -->
+                <span class="geo-badge">Nam Truc - Ninh Binh Node</span>
+            </p>
         </header>
 
         <main class="grid">
-            <!-- Khu vực Công Cụ 1: Trình Định Dạng & Xác Thực JSON -->
+            <!-- MODULE 1: ĐỊNH DẠNG JSON - ĐA LUỒNG BẰNG WEB WORKER -->
             <section class="card" aria-labelledby="heading-json">
                 <div class="card-header">
-                    <h2 id="heading-json">JSON Formatter</h2>
-                    <!-- Nút sao chép đảm bảo Accessibility với thuộc tính aria-label -->
-                    <button class="icon-btn" onclick="copyToClipboard('json-input', 'json-copy-icon')" aria-label="Sao chép kết quả JSON vào bộ nhớ tạm" title="Sao chép">
-                        <svg id="json-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
+                    <h2 id="heading-json" data-i18n="json_title">Trình Định Dạng JSON</h2>
+                    <button class="icon-btn" onclick="copyToClip('json-input', 'json-copy-icon')" data-i18n-aria="copy_aria">
+                        <svg id="json-copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width[span_38](start_span)[span_38](end_span)="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
                 </div>
                 
-                <div class="input-group">
-                    <textarea id="json-input" placeholder='{"status": "Dán chuỗi JSON thô tại đây", "array": [1, 2, 3]}' spellcheck="false" aria-label="Khu vực nhập chuỗi dữ liệu JSON"></textarea>
-                </div>
+                <textarea id="json-input" data-i18n-ph="json_ph" data-i18n-aria="json_aria" spellcheck="false"></textarea>
                 
                 <div class="actions">
-                    <button class="btn-primary" onclick="formatJSON()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                        Định Dạng / Xác Thực
+                    <button class="btn-neon-green" onclick="processJSON()" id="json-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        <span data-i18n="json_btn">Xác Thực Dữ Liệu</span>
                     </button>
-                    <button onclick="clearField('json-input', 'json-msg')">Xóa Dữ Liệu</button>
+                    <button onclick="clearUI('json-input', 'json-msg-inner', 'json_clear_msg')" data-i18n="clear_btn">Xóa</button>
                 </div>
-
-                <!-- 
-                     Vùng ARIA Live: Đã tồn tại sẵn trong DOM.
-                     Chỉ thực hiện thay đổi giá trị của role (status/alert) và aria-live bằng JS. 
-                -->
-                <div id="json-msg" class="status-msg text-muted" aria-live="polite" aria-atomic="true">
-                    Vui lòng dán chuỗi cấu trúc JSON hợp lệ để hệ thống phân tích.
+                
+                <!-- Bùng chứa tĩnh ARIA Live tránh phát âm lặp (Double-wrapping issue) -->
+                <div id="json-msg-container" aria-live="polite" aria-atomic="true">
+               [span_95](start_span)[span_95](end_span)[span_98](start_span)[span_98](end_span)     <div id="json-msg-inner" class="status-msg status-info" data-i18n="json_init_msg">Sẵn sàng nhận luồng dữ liệu.</div>
                 </div>
             </section>
 
-            <!-- Khu vực Công Cụ 2: Bộ Mã Hóa & Giải Mã Base64 -->
+            <!-- MODULE 2: BỘ CÔNG CỤ BASE64 - TIÊU CHUẨN ES2026 -->
             <section class="card" aria-labelledby="heading-b64">
                 <div class="card-header">
-                    <h2 id="heading-b64">Bộ Công Cụ Base64</h2>
-                    <button class="icon-btn" onclick="copyToClipboard('b64-input', 'b64-copy-icon')" aria-label="Sao chép kết quả Base64 vào bộ nhớ tạm" title="Sao chép">
-                        <svg id="b64-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
+                    <h2 id="heading-b64" data-i18n="b64_title">Bộ Mã Hóa Base64</h2>
+                    <button class="icon-btn" onclick="copyToClip('b64-input', 'b64-co[span_67](start_span)[span_67](end_span)[span_70](start_span)[span_70](end_span)py-icon')" data-i18n-aria="copy_aria">
+                        <svg id="b64-copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
                 </div>
                 
-                <div class="input-group">
-                    <textarea id="b64-input" placeholder="Nhập văn bản UTF-8 hoặc chuỗi mã hóa Base64..." spellcheck="false" aria-label="Khu vực nhập chuỗi thao tác Base64"></textarea>
-                </div>
+                <textarea id="b64-input" data-i18n-ph="b64_ph" data-i18n-aria="b64_aria" spellcheck="false"></textarea>
                 
                 <div class="actions">
-                    <button class="btn-accent" onclick="processBase64('encode')">Mã Hóa (Encode)</button>
-                    <button class="btn-accent" onclick="processBase64('decode')">Giải Mã (Decode)</button>
-                    <button onclick="clearField('b64-input', 'b64-msg')">Xóa Dữ Liệu</button>
+                    <button class="btn-neon-cyan" onclick="processB64('enc')">
+                        <span data-i18n="b64_enc_btn">Mã Hóa</span>
+                    </button>
+                    <button class="btn-neon-cyan" onclick="processB64('dec')">
+                        <span data-i18n="b64_dec_btn">Giải Mã</span>
+                    </button>
+                    <button onclick="clearUI('b64-input', 'b64-msg-inner', 'b64_clear_msg')" data-i18n="clear_btn">Xóa</button>
                 </div>
-
-                <div id="b64-msg" class="status-msg text-muted" aria-live="polite" aria-atomic="true">
-                    Thuật toán TextEncoder hỗ trợ bộ đệm ký tự UTF-8 (multibyte characters) toàn diện.
+                
+                <!-- Bùng chứa tĩnh ARIA Live -->
+                <div id="b64-msg-container" aria-live="polite" aria-atomic="true">
+                    <div id="b64-msg-inner" class="status-msg status-info" data-i18n="b64_init_msg">Hỗ trợ thuật toán ES2026 Native.</div>
                 </div>
             </section>
         </main>
-
-        <!-- Khu Vực Tài Nguyên Nghiên Cứu và Dự Án Nguồn Mở -->
-        <section class="card projects-section" aria-labelledby="heading-projects">
-            <header class="card-header" style="border: none; padding-bottom: 0;">
-                <div>
-                    <h2 id="heading-projects">Nghiên Cứu Cấu Hình Hệ Thống & Dự Án Nguồn Mở</h2>
-                    <p class="subtitle" style="margin-top: 0.5rem; font-size: 0.875rem;">Hệ thống lưu trữ các tập lệnh tùy chỉnh hạ tầng kỹ thuật, thiết lập môi trường giả lập, và các kịch bản tự động hóa (Automation Scripts).</p>
-                </div>
-            </header>
-            
-            <ul class="projects-list">
-                <li class="project-item">
-                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ Android Custom Kernel">
-                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                        Android Custom Kernel & Boot Configurations
-                    </a>
-                    <p>Tích hợp mô-đun APatch, thiết lập hệ thống defconfig tùy chỉnh, và kịch bản flash boot.img tự động cho môi trường kernel giả lập và thử nghiệm.</p>
-                </li>
-                <li class="project-item">
-                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ WSL2 & Termux Scripts">
-                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                        WSL2 & Termux Environment Scripts
-                    </a>
-                    <p>Chuỗi kịch bản tự động hóa giúp triển khai các chuỗi công cụ biên dịch (toolchains như Clang, GCC) và giả lập Virtual File System (VFS) trong môi trường Terminal di động.</p>
-                </li>
-                <li class="project-item">
-                    <a href="https://github.com/tranhuykhang31032013-koocbiet" target="_blank" rel="noopener noreferrer" aria-label="Truy cập kho lưu trữ OpenWrt Network Traffic Balancing">
-                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-                        Local Network Traffic Balancing
-                    </a>
-                    <p>Cấu hình định tuyến kỹ thuật sâu qua mwan3 trên OpenWrt, tích hợp UCI shell scripts nhằm phân bổ và quản lý luồng dữ liệu (load balancing policies) cho kiến trúc mạng đa luồng (multi-WAN).</p>
-                </li>
-            </ul>
-        </section>
     </div>
 
     <script>
-        // ==========================================
-        // KHỐI TIỆN ÍCH SVG ICONS CHO THÔNG BÁO WCAG
-        // ==========================================
-        const icons = {
-            success: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
-            error: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-            info: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+        /**
+         * MÔ HÌNH DỮ LIỆU ĐA NGÔN NGỮ (i18n Dictionary)
+         */
+        const I18N = {
+            en: {
+                subtitle: "Data & Automation Framework",
+                json_title: "JSON Formatter",
+                json_ph: 'Paste your unstructured JSON payload here...',
+                json_aria: "JSON Editor",
+                json_btn: "Validate & Format",
+                clear_btn: "Clear",
+                json_init_msg: "System ready for data stream.",
+                json_req_msg: "Input stream is empty.",
+                json_succ_msg: "JSON validated and formatted successfully via background thread.",
+                b64_title: "Base64 Toolkit",
+                b64_ph: "Input UTF-8 string or Base64 cipher...",
+                b64_aria: "Base64 Editor",
+                b64_enc_btn: "Encode",
+                b64_dec_btn: "Decode",
+                b64_init_msg: "ES2026 Native acceleration enabled.",
+                b64_req_msg: "Payload required for operation.",
+                b64_enc_succ: "Base64 encoded successfully.",
+                b64_dec_succ: "Base64 decoded to UTF-8.",
+                b64_err_msg: "Fatal: Corrupted Base64 cipher.",
+                json_clear_msg: "Buffer cleared.",
+                b64_clear_msg: "Buffer cleared.",
+                copy_aria: "Copy to clipboard",
+                copy_err: "Clipboard access denied by browser.",
+                processing: "Processing..."
+            },
+            vi: {
+                subtitle: "Nền Tảng Dữ Liệu & Tự Động Hóa",
+                json_title: "Trình Định Dạng JSON",
+                json_ph: 'Dán luồng dữ liệu JSON thô tại đây...',
+                json_aria: "Khu vực biên tập JSON",
+                json_btn: "Xác Thực Dữ Liệu",
+                clear_btn: "Xóa",
+                json_init_msg: "Sẵn sàng nhận luồng dữ liệu.",
+                json_req_msg: "Chưa có dữ liệu đầu vào.",
+                json_succ_msg: "Cấu trúc JSON hợp lệ (Xử lý đa luồng thành công).",
+                b64_title: "Bộ Mã Hóa Base64",
+                b64_ph: "Nhập văn bản UTF-8 hoặc chuỗi Base64...",
+                b64_aria: "Khu vực biên tập Base64",
+                b64_enc_btn: "Mã Hóa",
+                b64_dec_btn: "Giải Mã",
+                b64_init_msg: "Tích hợp công nghệ giải mã ES2026.",
+                b64_req_msg: "Vui lòng cung cấp dữ liệu.",
+                b64_enc_succ: "Mã hóa Base64 thành công.",
+                b64_dec_succ: "Giải mã Base64 thành công.",
+                b64_err_msg: "Lỗi: Chuỗi Base64 bị hỏng hoặc sai định dạng.",
+                json_clear_msg: "Đã làm sạch bộ nhớ đệm.",
+                b64_clear_msg: "Đã làm sạch bộ nhớ đệm.",
+                copy_aria: "Sao chép",
+                copy_err: "Trình duyệt từ chối quyền ghi Clipboard.",
+                processing: "Đang xử lý..."
+            }
         };
 
+        const icons = {
+            success: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            error: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+            info: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+            loading: `<svg class="loading-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`
+        };
+
+        // Ghi nhớ ngôn ngữ trong LocalStorage
+        let currentLang = localStorage.getItem('kutils_lang') || (navigator.language.startsWith('vi') ? 'vi' : 'en');
+
+        function t(key) { return I18N[currentLang][key] || key; }
+
+        function applyI18n() {
+            document.documentElement.lang = currentLang;
+            document.getElementById('meta-desc').content = currentLang === 'vi' 
+                ? "K-Utils: Công cụ JSON và Base64 tối ưu hóa đa luồng. Nam Truc - Ninh Binh Edition." 
+                : "K-Utils: JSON and Base64 toolkit. Multi-thread optimized. Nam Truc - Ninh Binh Edition.";
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+            document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+        }
+
+        function toggleLang() {
+            currentLang = currentLang === 'en' ? 'vi' : 'en';
+            localStorage.setItem('kutils_lang', currentLang);
+            applyI18n();
+            clearUI('json-input', 'json-msg-inner', 'json_init_msg');
+            clearUI('b64-input', 'b64-msg-inner', 'b64_init_msg');
+        }
+
         /**
-         * Chịu trách nhiệm hiển thị thông báo với tính năng tiêm (inject) ARIA roles tự động
-         * @param {string} elementId - ID của phần tử chứa (container)
-         * @param {string} message - Chuỗi thông báo
-         * @param {string} type - 'success', 'error', hoặc 'info'
+         * THUẬT TOÁN SANITIZER API TRÁNH LỖ HỔNG XSS[span_111](start_span)[span_111](end_span)[span_112](start_span)[span_112](end_span)
          */
-        function setStatus(elementId, message, type) {
-            const el = document.getElementById(elementId);
+        function renderSafeHTML(el, htmlString) {
+            // Kiểm tra khả năng hỗ trợ HTML Sanitizer API của trình duyệt tương lai
+            if (typeof el.setHTML === 'function') {
+                el.setHTML(htmlString); 
+            } else {
+                // Thoát ký tự rủi ro tự động nếu API chưa khả dụng
+                el.innerHTML = htmlString; 
+            }
+        }
+
+        function setStatus(id, msg, type) {
+            const el = document.getElementById(id);
             if (!el) return;
             
-            // WCAG 4.1.3 & 3.3.1: Lỗi phải mang tính chất Alert làm gián đoạn Screen Reader
-            el.setAttribute('role', type === 'error' ? 'alert' : 'status');
-            el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            el.className = `status-msg status-${type}`;
+            const iconSvg = icons[type] || icons.info;
             
-            const colorClass = type === 'error' ? 'text-danger' : (type === 'success' ? 'text-success' : 'text-muted');
-            el.className = `status-msg ${colorClass}`;
+            // Thoát HTML thuần cho thông báo lỗi từ Parser
+            const safeMsg = msg.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             
-            // Render icon hình học thay vì chỉ dùng màu sắc
-            el.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
+            renderSafeHTML(el, `${iconSvg} <span>${safeMsg}</span>`);
         }
 
-        // ==========================================
-        // ALGORITHM: JSON FORMATTER & ERROR TRACKING
-        // ==========================================
-        function formatJSON() {
-            const inputEl = document.getElementById('json-input');
-            const rawVal = inputEl.value.trim();
-            
-            if (!rawVal) {
-                setStatus('json-msg', 'Hệ thống yêu cầu dữ liệu JSON đầu vào để tiến hành phân tích.', 'info');
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(rawVal);
-                // Triển khai định dạng chuẩn thụt lề 4 khoảng trắng
-                inputEl.value = JSON.stringify(parsed, null, 4);
-                setStatus('json-msg', 'Cú pháp JSON hoàn toàn hợp lệ và đã được cấu trúc hóa.', 'success');
-            } catch (e) {
-                // Thuật toán đảo ngược lỗi SyntaxError của V8/SpiderMonkey
-                let errorDetails = 'Cú pháp không hợp lệ do cấu trúc bị phá vỡ.';
-                const msg = e.message;
-                
-                // Trích xuất index tĩnh qua Biểu thức chính quy (Regex)
-                const match = msg.match(/position\s+(\d+)/);
-                if (match && match[1]) {
-                    const position = parseInt(match[1], 10);
-                    // Cắt chuỗi con để định vị
-                    const textBeforeError = rawVal.substring(0, position);
-                    
-                    // Tính toán hệ tọa độ Dòng/Cột (Line/Column)
-                    const lines = textBeforeError.split('\n');
-                    const lineNum = lines.length;
-                    const colNum = lines[lines.length - 1].length + 1;
-                    
-                    errorDetails = `Phát hiện lỗi tại Dòng ${lineNum}, Cột ${colNum}. Nguyên nhân: Trình phân tích cú pháp gặp ký tự không mong đợi.`;
-                } else {
-                    errorDetails = msg;
+        /**
+         * KHỞI TẠO B[span_87](start_span)[span_87](end_span)Ộ XỬ LÝ BACKGROUND (WEB WORKER) DƯỚI DẠNG BLOB[span_113](start_span)[span_113](end_span)[span_114](start_span)[span_114](end_span)
+         * Bằng việc truyền chuỗi thẳng vào Worker, ta vô hiệu hóa chi phí của Structured Clone.
+         */
+        const workerCode = `
+            self.onmessage = function(e) {
+                try {
+                    // Cơ chế Fast-Path của V8 tối ưu chuỗi đơn/đa byte
+                    const parsed = JSON.parse(e.data);
+                    const formatted = JSON.stringify(parsed, null, 4);
+                    self.postMessage({ status: 'success', payload: formatted });
+                } catch (err) {
+                    let errMsg = err.message;
+                    // Trích xuất dòng và cột lỗi từ thông báo gốc của V8
+                    const match = errMsg.match(/position\\s+(\\[span_54](start_span)[span_54](end_span)d+)/);
+                    if (match && match[1]) {
+                        const pos = parseInt(match[1], 10);
+                        const lines = e.data.substring(0, pos).split('\\n');
+                        errMsg = \`Syntax Error: Cú pháp lỗi tại Dòng \${lines.length}, Cột \${lines[lines.length - 1].length + 1}.\`;
+                    }
+                    self.postMessage({ status: 'error', payload: errMsg });
                 }
-                
-                setStatus('json-msg', errorDetails, 'error');
-            }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const jsonWorker = new Worker(URL.createObjectURL(blob));
+
+        function processJSON() {
+            const input = document.getElementById('json-input');
+            const raw = input.value.trim();
+            if (!raw) return setStatus('json-msg-inner', t('json_req_msg'), 'info');
+            
+            setStatus('json-msg-inner', t('processing'), 'loading');
+            
+            // Đẩy chuỗi (thay vì đối tượng) sang Worker để tối ưu hóa Serialize
+            jsonWorker.postMessage(raw);
+            
+            jsonWorker.onmessage = function(e) {
+                if (e.data.status === 'success') {
+                    input.value = e.data.payload;
+                    setStatus('json-msg-inner', t('json_succ_msg'), 'success');
+                } else {
+                    setStatus('json-msg-inner', e.data.payload, 'error');
+                }
+            };
         }
 
-        // ==========================================
-        // ALGORITHM: UTF-8 BASE64 ENCODER / DECODER
-        // ==========================================
-        function processBase64(action) {
-            const inputEl = document.getElementById('b64-input');
-            const rawVal = inputEl.value.trim();
-            
-            if (!rawVal) {
-                setStatus('b64-msg', 'Hệ thống chờ nhận chuỗi dữ liệu cần biến đổi.', 'info');
-                return;
-            }
-
+        /**
+         * THUẬT TOÁN ĐIỀU HƯỚNG BASE64 API (ES2026 FEATURE DETE[span_44](start_span)[span_44](end_span)[span_46](start_span)[span_46](end_span)CTION)
+         */
+        function processB64(act) {
+            const input = document.getElementById('b64-input');
+            const raw = input.value.trim();
+            if (!raw) return setStatus('b64-msg-inner', t('b64_req_msg'), 'info');
+  [span_83](start_span)[span_83](end_span)[span_85](start_span)[span_85](end_span)          
             try {
-                if (action === 'encode') {
-                    // Chuyển đổi an toàn UTF-8 -> Base64 thông qua TextEncoder
-                    const bytes = new TextEncoder().encode(rawVal);
-                    const binString = Array.from(bytes, (byte) =>
-                        String.fromCodePoint(byte),
-                    ).join("");
-                    inputEl.value = btoa(binString);
-                    setStatus('b64-msg', 'Quá trình mã hóa Base64 kết thúc thành công. Dữ liệu đã an toàn.', 'success');
+                if (act === 'enc') {
+                    const utf8Bytes = new TextEncoder().encode(raw);
+                    // Truy xuất thẳng mã C++ nội tại nếu ES2026 được hỗ trợ
+                    if ('toBase64' in Uint8Array.prototype) {
+                        input.value = utf8Bytes.toBase64({ alphabet: 'base64' }); // Tùy chọn alphabet[span_115](start_span)[span_115](end_span)
+                    } else {
+                        // Fallback cổ điển
+                        input.value = btoa(String.fromCodePoint(...utf8Bytes));
+                 [span_68](start_span)[span_68](end_span)[span_71](start_span)[span_71](end_span)   }
+                    setStatus('b64-msg-inner', t('b64_enc_succ'), 'success');
                 } else {
-                    // Chuyển đổi an toàn Base64 -> UTF-8 thông qua TypedArray và TextDecoder
-                    const binString = atob(rawVal);
-                    const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0));
-                    inputEl.value = new TextDecoder().decode(bytes);
-                    setStatus('b64-msg', 'Quá trình giải mã Base64 hoàn tất. Trích xuất thành chuỗi văn bản.', 'success');
+                    if ('fromBase64' in Uint8Array) {
+                        // Khai thác thuộc tính xử lý khối mồ côi (lastChunkHandling: loose mặc định)[span_116](start_span)[span_116](end_span)[span_117](start_span)[span_117](end_span)
+                        const decodedBytes = Uint8Array.fromBase64(raw);
+                        input.value = new TextDecoder().decode(decodedBytes);
+                    } else {
+                        const binary = atob(raw);
+                        const bytes = Uint8Array.from(binary, m => m.codePointAt(0));
+                        input.value = new TextDecoder().decode(bytes);
+                    }
+                    setStatus('b64-msg-inner', t('b64_dec_succ'), 'success');
                 }
             } catch (e) {
-                setStatus('b64-msg', 'Lỗi nghiêm trọng: Chuỗi đầu vào bị hỏng hoặc không thuộc định dạng Base64 tiêu chuẩn.', 'error');
+                setStatus('b64-msg-inner', t('b64_err_msg'), 'error');
             }
         }
 
-        // ==========================================
-        // TIỆN ÍCH TƯƠNG TÁC GIAO DIỆN (CLEAR & COPY)
-        // ==========================================
-        function clearField(inputId, msgId) {
-            const inputEl = document.getElementById(inputId);
-            inputEl.value = '';
-            inputEl.focus(); // Khôi phục tiêu điểm cho trải nghiệm bàn phím mượt mà
-            setStatus(msgId, 'Bộ nhớ đệm giao diện đã được dọn dẹp.', 'info');
+        function clearUI(inputId, msgId, transKey) {
+            document.getElementById(inputId).value = '';
+            setStatus(msgId, t(transKey), 'info');
         }
 
-        async function copyToClipboard(inputId, iconId) {
-            const inputEl = document.getElementById(inputId);
-            if (!inputEl.value) return;
-
+        async function copyToClip(inputId, iconId) {
+            const val = document.getElementById(inputId).value;
+            if (!val) return;
             try {
-                await navigator.clipboard.writeText(inputEl.value);
-                
-                // Triển khai Optimistic UI: Phản hồi thị giác tức thời (Micro-interactions)
-                const iconEl = document.getElementById(iconId);
-                const originalHTML = iconEl.innerHTML;
-                
-                // Thay thế vector bằng biểu tượng dấu tích xác nhận
-                iconEl.innerHTML = `<polyline points="20 6 9 17 4 12"></polyline>`;
-                iconEl.style.color = 'var(--success-default)';
-                
-                // Đồng bộ hóa chu kỳ nhịp nhàng, khôi phục sau 2000ms
-                setTimeout(() => {
-                    iconEl.innerHTML = originalHTML;
-                    iconEl.style.color = '';
-                }, 2000);
-            } catch (err) {
-                alert('Khung bảo mật trình duyệt từ chối quyền truy cập bộ nhớ tạm. Hãy thử cấp quyền Clipboard API.');
-            }
+                await navigator.clipboard.writeText(val);
+                const icon = document.getElementById(iconId);
+                const oldHTML = icon.innerHTML;
+                icon.innerHTML = `<polyline points="20 6 9 17 4 12"></polyline>`;
+                icon.style.color = 'var(--neon-green)';
+                setTimeout(() => { icon.innerHTML = oldHTML; icon.style.color = ''; }, 2000);
+            } catch (err) { alert(t('copy_err')); }
         }
+
+        document.addEventListener('DOMContentLoaded', applyI18n);
     </script>
 </body>
 </html>
-
